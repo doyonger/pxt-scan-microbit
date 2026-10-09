@@ -1,6 +1,6 @@
 {
   "name": "scan-microbit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Extension MakeCode pour le jeu ScAN micro:bit",
   "dependencies": { "core": "*" },
   "files": ["main.ts", "README.md"],

@@ -40,7 +40,7 @@ namespace scan {
     let stable: boolean[] = [ false, false, false, false, false, false ]
     let candidate: boolean[] = [ false, false, false, false, false, false ]
     let changedAt: number[] = [ 0, 0, 0, 0, 0, 0 ]
-    let handlers: (() => void)[] = [ null, null, null, null, null, null ]
+    const eventSource = 8201
     let started = false
     const debounceMs = 30
 
@@ -89,7 +89,7 @@ namespace scan {
                     }
                     if (candidate[i] != stable[i] && now - changedAt[i] >= debounceMs) {
                         stable[i] = candidate[i]
-                        if (stable[i] && handlers[i]) handlers[i]()
+                        if (stable[i]) control.raiseEvent(eventSource, i + 1)
                     }
                 }
                 basic.pause(10)
@@ -120,13 +120,13 @@ namespace scan {
         pins.digitalWritePin(digital(d), 0)
     }
 
-    /** Exécute les blocs une fois par contact, après filtrage des rebonds. */
+    /** Déclenche un événement une fois par contact ; les sons ne bloquent pas la surveillance. */
     //% block="lorsque le trou %trou est touché"
     //% trou.min=1 trou.max=6 trou.defl=1
     //% draggableParameters=false
     //% weight=80
     export function lorsqueTouche(trou: number, handler: () => void): void {
-        if (trou >= 1 && trou <= 6) handlers[trou - 1] = handler
+        if (trou >= 1 && trou <= 6) control.onEvent(eventSource, trou, handler)
     }
 
     /** Indique si la pince touche actuellement ce contour (après filtrage). */
