@@ -38,8 +38,27 @@ namespace scan {
     let contacts: number[] = [-1, -1, -1, -1, -1, -1]
     let leds: number[] = [-1, -1, -1, -1, -1, -1]
 
+    // DigitalPin est une énumération matérielle MakeCode : ses valeurs
+    // internes ne sont pas les numéros imprimés sur les broches.
     function digital(port: number): DigitalPin {
-        return port as DigitalPin
+        switch (port) {
+            case 0: return DigitalPin.P0
+            case 1: return DigitalPin.P1
+            case 2: return DigitalPin.P2
+            case 3: return DigitalPin.P3
+            case 4: return DigitalPin.P4
+            case 6: return DigitalPin.P6
+            case 7: return DigitalPin.P7
+            case 8: return DigitalPin.P8
+            case 9: return DigitalPin.P9
+            case 10: return DigitalPin.P10
+            case 12: return DigitalPin.P12
+            case 13: return DigitalPin.P13
+            case 14: return DigitalPin.P14
+            case 15: return DigitalPin.P15
+            case 16: return DigitalPin.P16
+            default: return DigitalPin.P0
+        }
     }
 
     function valid(trou: number): boolean {

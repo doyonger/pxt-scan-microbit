@@ -1,4 +1,4 @@
-# ScAN micro:bit — v0.4
+# ScAN micro:bit — v0.5
 
 Extension MakeCode pour le jeu ScAN (micro:bit V2 + sensor:bit).
 
@@ -35,3 +35,7 @@ Contour métallique sur P8, pince sur GND, DEL sur P2.
 - La lecture est immédiate : les rebonds mécaniques ne sont pas filtrés par l'extension.
 - Pour un son unique par contact, les élèves devront programmer la détection du passage de « non touché » à « touché ».
 - P1 peut interagir avec les fonctions audio sur micro:bit V2; P8 est recommandé pour le premier essai.
+
+
+## Correction v0.5
+Conversion explicite de PortScAN vers DigitalPin pour les lectures, pull-up et sorties DEL.
