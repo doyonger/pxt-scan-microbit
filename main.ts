@@ -1,4 +1,4 @@
-/** Extension ScAN : détection de contacts et DEL indépendantes. */
+/** Extension ScAN : configuration des contacts et des DEL, sans surveillance en arrière-plan. */
 //% color=#1676A2 icon="\uf0e7" block="ScAN"
 namespace scan {
     export enum PortScAN {
@@ -35,24 +35,15 @@ namespace scan {
     }
 
     let count = 0
-    let contacts: number[] = [ -1, -1, -1, -1, -1, -1 ]
-    let leds: number[] = [ -1, -1, -1, -1, -1, -1 ]
-    let stable: boolean[] = [ false, false, false, false, false, false ]
-    let candidate: boolean[] = [ false, false, false, false, false, false ]
-    let changedAt: number[] = [ 0, 0, 0, 0, 0, 0 ]
-    let armed: boolean[] = [ false, false, false, false, false, false ]
-    let restSince: number[] = [ 0, 0, 0, 0, 0, 0 ]
-    const restMs = 50
-    const eventSource = 8201
-    let started = false
-    const debounceMs = 30
+    let contacts: number[] = [-1, -1, -1, -1, -1, -1]
+    let leds: number[] = [-1, -1, -1, -1, -1, -1]
 
     function digital(port: number): DigitalPin {
         return port as DigitalPin
     }
 
-    function valid(n: number): boolean {
-        return n >= 1 && n <= count
+    function valid(trou: number): boolean {
+        return trou >= 1 && trou <= count && trou == Math.round(trou)
     }
 
     function usedElsewhere(port: number, except: number): boolean {
@@ -75,52 +66,12 @@ namespace scan {
         for (let i = 0; i < 6; i++) {
             contacts[i] = -1
             leds[i] = -1
-            stable[i] = false
-            candidate[i] = false
-            changedAt[i] = 0
-            armed[i] = false
-            restSince[i] = 0
-        }
-        if (!started) {
-            started = true
-            basic.forever(function () {
-                const now = input.runningTime()
-                for (let i = 0; i < count; i++) {
-                    if (contacts[i] < 0) continue
-                    const touching = pins.digitalReadPin(digital(contacts[i])) == 0
-                    // Un trou ne devient actif qu'après 50 ms sans contact.
-                    // Évite de déclencher un événement sur un niveau initial inconnu.
-                    if (!armed[i]) {
-                        if (touching) {
-                            restSince[i] = 0
-                        } else {
-                            if (restSince[i] == 0) restSince[i] = now
-                            if (now - restSince[i] >= restMs) {
-                                armed[i] = true
-                                stable[i] = false
-                                candidate[i] = false
-                                changedAt[i] = now
-                            }
-                        }
-                        continue
-                    }
-                    if (touching != candidate[i]) {
-                        candidate[i] = touching
-                        changedAt[i] = now
-                    }
-                    if (candidate[i] != stable[i] && now - changedAt[i] >= debounceMs) {
-                        stable[i] = candidate[i]
-                        if (stable[i]) control.raiseEvent(eventSource, i + 1)
-                    }
-                }
-                basic.pause(10)
-            })
         }
     }
 
     /**
-     * Associe les broches du contour métallique et de la DEL à un trou.
-     * Pull-up : résistance interne qui maintient le signal à 1 sans contact ; la pince reliée au GND le fait passer à 0.
+     * Associe les broches du contour et de la DEL. Active automatiquement le pull-up du contact.
+     * Pull-up : une résistance interne qui permet de reconnaître si la pince touche le contour métallique (0) ou non (1).
      * @param trou numéro du trou, eg: 1
      */
     //% block="configurer trou %trou contact %contact DEL %del"
@@ -132,39 +83,30 @@ namespace scan {
         const c = contact as number
         const d = del as number
         if (c == d || usedElsewhere(c, i) || usedElsewhere(d, i)) return
+        // Éteindre l'ancienne DEL si ce trou est reconfiguré.
+        if (leds[i] >= 0 && leds[i] != d) pins.digitalWritePin(digital(leds[i]), 0)
         contacts[i] = c
         leds[i] = d
-        stable[i] = false
-        candidate[i] = false
-        changedAt[i] = input.runningTime()
-        armed[i] = false
-        restSince[i] = 0
         pins.setPull(digital(c), PinPullMode.PullUp)
         pins.digitalWritePin(digital(d), 0)
     }
 
-    /** Déclenche un événement une fois par contact ; les sons ne bloquent pas la surveillance. */
-    //% block="lorsque le trou %trou est touché"
-    //% trou.min=1 trou.max=6 trou.defl=1
-    //% draggableParameters=false
-    //% weight=80
-    export function lorsqueTouche(trou: number, handler: () => void): void {
-        if (trou >= 1 && trou <= 6) control.onEvent(eventSource, trou, handler)
-    }
-
-    /** Indique si la pince touche actuellement ce contour (après filtrage). */
+    /** Retourne vrai si le contour est relié au GND par la pince. Lecture immédiate, sans balayage permanent. */
     //% block="le trou %trou est touché ?"
     //% trou.min=1 trou.max=6 trou.defl=1
-    //% weight=70
+    //% weight=80
     export function estTouche(trou: number): boolean {
-        return valid(trou) && stable[trou - 1]
+        if (!valid(trou)) return false
+        const p = contacts[trou - 1]
+        if (p < 0) return false
+        return pins.digitalReadPin(digital(p)) == 0
     }
 
     /** Allume ou éteint la DEL associée au trou. */
     //% block="mettre la DEL du trou %trou à %allumee"
     //% trou.min=1 trou.max=6 trou.defl=1
     //% allumee.shadow=toggleOnOff
-    //% weight=60
+    //% weight=70
     export function mettreDel(trou: number, allumee: boolean): void {
         if (!valid(trou)) return
         const p = leds[trou - 1]
@@ -173,7 +115,7 @@ namespace scan {
 
     /** Éteint toutes les DEL configurées. */
     //% block="éteindre toutes les DEL"
-    //% weight=50
+    //% weight=60
     export function eteindreTout(): void {
         for (let i = 0; i < count; i++) {
             if (leds[i] >= 0) pins.digitalWritePin(digital(leds[i]), 0)

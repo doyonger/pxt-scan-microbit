@@ -1,7 +1,7 @@
 {
   "name": "scan-microbit",
-  "version": "0.2.0",
-  "description": "Extension MakeCode pour le jeu ScAN micro:bit",
+  "version": "0.4.0",
+  "description": "Extension MakeCode ScAN micro:bit : pull-up automatique et lecture des contacts à la demande",
   "dependencies": { "core": "*" },
   "files": ["main.ts", "README.md"],
   "public": true,

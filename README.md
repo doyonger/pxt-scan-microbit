@@ -1,25 +1,37 @@
-# ScAN micro:bit — prototype v0.2
+# ScAN micro:bit — v0.4
 
-Extension MakeCode pour le jeu ScAN (1 à 6 trous).
+Extension MakeCode pour le jeu ScAN (micro:bit V2 + sensor:bit).
 
-## Modifications v0.2
-- Événements déclenchés avec `control.raiseEvent` / `control.onEvent` : les sons et pauses des élèves ne bloquent plus la surveillance des autres trous.
-- Résistance pull-up activée sur la broche de contact choisie dans chaque bloc `configurer`.
-- Filtrage de 30 ms et un événement par contact continu.
+## Principe
 
-## Branchement
-- Pince déjà câblée : connecteur Dupont femelle vers GND (noir) de la sensor:bit.
-- Chaque contour métallique vers une entrée configurée.
-- Chaque DEL vers sa sortie configurée.
+- `initialiser(trous)` : désactive la matrice de DEL et prépare 1 à 6 trous.
+- `configurer(trou, contact, del)` : mémorise les broches, active le pull-up du contact et éteint la DEL.
+- `estTouche(trou)` : lit la broche **uniquement au moment de l'appel** et retourne `true` lorsque la pince reliée à GND touche le contour.
+- `mettreDel(trou, allumee)` : commande la DEL du trou.
+- `eteindreTout()` : éteint toutes les DEL configurées.
 
-## Essai conseillé
-1. `initialiser ScAN avec 1 trous` puis `configurer trou 1 contact P1 DEL P2`.
-2. `lorsque le trou 1 est touché` → DEL ON, tonalité, DEL OFF.
-3. Vérifier que le son se produit uniquement lors d'un nouveau contact.
+**Aucune boucle de surveillance ni aucun événement de contact dans l'extension.** Les élèves créent leurs propres conditions `si / sinon` dans `toujours`.
 
-**Prototype non testé sur matériel réel.** Si aucun événement n'est détecté, tester la lecture brute de P1 avec `pins.digitalReadPin` et vérifier l'initialisation du pull-up.
+## Exemple de test (1 trou)
 
+```typescript
+scan.initialiser(1)
+scan.configurer(1, scan.PortScAN.P8, scan.PortScAN.P2)
+basic.forever(function () {
+    if (scan.estTouche(1)) {
+        scan.mettreDel(1, true)
+    } else {
+        scan.mettreDel(1, false)
+    }
+    basic.pause(20)
+})
+```
 
-## Version 0.3
+Contour métallique sur P8, pince sur GND, DEL sur P2.
 
-Chaque entrée est armée uniquement après 50 ms continus au repos (niveau haut avec pull-up). Un contact doit ensuite durer au moins 30 ms pour déclencher un événement; un nouveau contact nécessite un relâchement.
+## Notes
+
+- Utiliser des ports distincts pour chaque entrée et sortie. Une configuration avec un port déjà utilisé est ignorée.
+- La lecture est immédiate : les rebonds mécaniques ne sont pas filtrés par l'extension.
+- Pour un son unique par contact, les élèves devront programmer la détection du passage de « non touché » à « touché ».
+- P1 peut interagir avec les fonctions audio sur micro:bit V2; P8 est recommandé pour le premier essai.
