@@ -40,6 +40,9 @@ namespace scan {
     let stable: boolean[] = [ false, false, false, false, false, false ]
     let candidate: boolean[] = [ false, false, false, false, false, false ]
     let changedAt: number[] = [ 0, 0, 0, 0, 0, 0 ]
+    let armed: boolean[] = [ false, false, false, false, false, false ]
+    let restSince: number[] = [ 0, 0, 0, 0, 0, 0 ]
+    const restMs = 50
     const eventSource = 8201
     let started = false
     const debounceMs = 30
@@ -75,6 +78,8 @@ namespace scan {
             stable[i] = false
             candidate[i] = false
             changedAt[i] = 0
+            armed[i] = false
+            restSince[i] = 0
         }
         if (!started) {
             started = true
@@ -83,6 +88,22 @@ namespace scan {
                 for (let i = 0; i < count; i++) {
                     if (contacts[i] < 0) continue
                     const touching = pins.digitalReadPin(digital(contacts[i])) == 0
+                    // Un trou ne devient actif qu'après 50 ms sans contact.
+                    // Évite de déclencher un événement sur un niveau initial inconnu.
+                    if (!armed[i]) {
+                        if (touching) {
+                            restSince[i] = 0
+                        } else {
+                            if (restSince[i] == 0) restSince[i] = now
+                            if (now - restSince[i] >= restMs) {
+                                armed[i] = true
+                                stable[i] = false
+                                candidate[i] = false
+                                changedAt[i] = now
+                            }
+                        }
+                        continue
+                    }
                     if (touching != candidate[i]) {
                         candidate[i] = touching
                         changedAt[i] = now
@@ -116,6 +137,8 @@ namespace scan {
         stable[i] = false
         candidate[i] = false
         changedAt[i] = input.runningTime()
+        armed[i] = false
+        restSince[i] = 0
         pins.setPull(digital(c), PinPullMode.PullUp)
         pins.digitalWritePin(digital(d), 0)
     }

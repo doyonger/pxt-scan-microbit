@@ -18,3 +18,8 @@ Extension MakeCode pour le jeu ScAN (1 à 6 trous).
 3. Vérifier que le son se produit uniquement lors d'un nouveau contact.
 
 **Prototype non testé sur matériel réel.** Si aucun événement n'est détecté, tester la lecture brute de P1 avec `pins.digitalReadPin` et vérifier l'initialisation du pull-up.
+
+
+## Version 0.3
+
+Chaque entrée est armée uniquement après 50 ms continus au repos (niveau haut avec pull-up). Un contact doit ensuite durer au moins 30 ms pour déclencher un événement; un nouveau contact nécessite un relâchement.
